@@ -157,31 +157,14 @@ async function saveOnboarding(
 }
 
 async function generateAISummary(answers: Record<string, string>): Promise<AISummary> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await fetch("/api/onboarding-summary", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 800,
-      messages: [{
-        role: "user",
-        content: `You are an expert startup talent analyst for joinstartup.app.
-
-Builder answers:
-CAREER: ${answers.career_walk || ""} | Break: ${answers.gap_reason || ""}
-BUILDER: Built: ${answers.proudest_build || ""} | Mode: ${answers.work_mode || ""} | Collab: ${answers.collaboration_style || ""}
-STARTUP: Exp: ${answers.startup_experience || ""} | Team: ${answers.smallest_team || ""} | Deadlines: ${answers.deadline_self || ""}
-FOUNDER FIT: Needs: ${answers.founder_needs || ""} | Space: ${answers.problem_space || ""}
-SELF: Style: ${answers.working_style || ""} | Strengths: ${answers.strengths_growth || ""}
-
-Return ONLY valid JSON, no markdown:
-{"headline":"6-10 word builder archetype","summary":"2-3 sentence founder-facing narrative","strengths":["tag1","tag2","tag3"],"founderMatch":"1 sentence best fit","watchout":"1 honest observation","readinessScore":7}`,
-      }],
-    }),
+    body: JSON.stringify({ answers }),
   });
-  const data = await res.json();
-  const text = data.content.map((i: { text?: string }) => i.text || "").join("");
-  return JSON.parse(text.replace(/```json|```/g, "").trim());
+
+  if (!res.ok) throw new Error("Failed to generate summary");
+  return await res.json();
 }
 
 // ── Component ──────────────────────────────────────────

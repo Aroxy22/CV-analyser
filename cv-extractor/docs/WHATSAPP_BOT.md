@@ -1,132 +1,93 @@
-# WhatsApp CV Bot — Implementation Plan
+# WhatsApp Business Integration — Spec
 
-**Goal:** Let users drop their CV to a WhatsApp number and get the same analysis as the web flow.
+## Status
 
-## Flow
+| Component | Status |
+|---|---|
+| `whatsapp_sessions` DB table | ✅ Live |
+| `whatsapp-bot` Supabase edge function | ✅ v1 ready |
+| Meta Cloud API setup | ⏳ Pending |
+| Edge function env vars | ⏳ Pending |
 
-1. User sends a PDF (or image of CV) to a JoinStartup WhatsApp number
-2. Bot acknowledges receipt
-3. Backend extracts CV content, runs existing `extract-fast` / `extract-deep` pipeline
-4. Bot replies with: archetype, fit summary, and a link to full analysis on web
-5. Optionally: user replies with email → we save to builders, send profile link
+---
 
-## Prerequisites
+## ⚠ Number setup first
 
-- **WhatsApp Business API** — via Meta or a provider (Twilio, MessageBird, 360dialog, WATI)
-- **Webhook endpoint** — receives incoming messages and media
-- **Server** that can:
-  - Download media from WhatsApp
-  - Call existing extract APIs
-  - Send templated replies
+You cannot use a personal WhatsApp number for Cloud API production.
+Use one dedicated number:
+- New SIM (Jio/Airtel etc.) and migrate to WhatsApp Business, or
+- Verified virtual number provider.
 
-## Architecture
+---
 
-```
-WhatsApp → Webhook (Next.js API or separate service)
-                ↓
-         Download PDF/media
-                ↓
-         POST /api/extract-fast or /api/extract-deep (reuse existing)
-                ↓
-         Format result for WhatsApp (short text + link)
-                ↓
-         Send reply via WhatsApp Cloud API
-```
+## Meta Cloud API setup (one-time)
 
-## Implementation Steps
+1. Go to `developers.facebook.com` → Create App → **Business**
+2. Add **WhatsApp** product
+3. In **Getting Started**, add your phone number
+4. Note:
+   - `Phone Number ID`
+   - Permanent Access Token (System User token from Business settings)
+5. Configure webhook:
+   - URL: `https://xsbsoevqqvnxmtxuytiu.supabase.co/functions/v1/whatsapp-bot`
+   - Verify token: `joinstartup_verify`
+   - Subscribe to: `messages`
+6. Add edge function env vars:
+   - `WHATSAPP_TOKEN`
+   - `WHATSAPP_PHONE_ID`
+   - `WHATSAPP_VERIFY_TOKEN=joinstartup_verify`
+   - `GROQ_API_KEY`
+   - `SARVAM_API_KEY` (fallback)
 
-### 1. WhatsApp Business API setup
+---
 
-- Create Meta Business Account, register app, get WhatsApp Business API access
-- Or use provider: [Twilio WhatsApp](https://www.twilio.com/whatsapp), [360dialog](https://www.360dialog.com/), [WATI](https://www.wati.io/)
-- Get webhook URL verified (GET) and handle incoming events (POST)
+## Conversation flow
 
-### 2. Webhook API route
+1. Builder sends any message
+2. Bot replies: “Hey! Send me your CV as PDF…”
+3. Builder sends PDF
+4. Bot replies: “Got your CV! What are you looking for?”
+5. Builder sends goal text
+6. Bot replies: “Analysing... ⏳”
+7. Analysis runs (Groq primary, Sarvam fallback)
+8. Bot sends teaser:
+   - Archetype
+   - 2-3 sentence summary
+   - Founder read
+   - Recruiter read
+   - CTA to full analysis
 
-Create `/api/webhooks/whatsapp/route.ts`:
+---
 
-- **GET:** Verify webhook (Meta sends `hub.mode`, `hub.verify_token`, `hub.challenge`)
-- **POST:** Parse incoming message, extract:
-  - `from` (phone/wa_id)
-  - `type` (text, image, document)
-  - `document` or `image` URL (need to fetch via WhatsApp Media API)
+## Conversation states
 
-### 3. Media handling
+- `idle` → first greeting + ask CV
+- `waiting_cv` → waiting for PDF
+- `waiting_goal` → ask what they are looking for
+- `analysing` → run analysis
+- `done` → teaser + links
 
-- WhatsApp sends media ID, not raw file
-- Call `GET https://graph.facebook.com/v18.0/{media_id}` with access token to get URL
-- Download file (PDF or image)
-- If image: convert to text via OCR (e.g. Tesseract, or use Vision API) before extract
-- If PDF: pass to existing extract pipeline
+Keywords in `done` state:
+- `again` / `redo` → restart flow
+- `full` / `roadmap` → send full-analysis link
+- `pool` / `join` / `499` → explain pool + link
 
-### 4. Reuse extract pipeline
+---
 
-- Use `/api/extract-fast` or `/api/extract-deep` with base64 PDF
-- Or call the same logic internally (extract-fast route handler)
-- Parse response for archetype, stage, summary, founder view headline
+## Edge function responsibilities (`whatsapp-bot`)
 
-### 5. Reply format
+- `GET` → webhook verification (Meta requirement)
+- `POST` → incoming messages, state machine, media download, analysis call, outbound reply
 
-WhatsApp has a 4096-char limit. Keep reply short:
+---
 
-```
-📄 Got your CV.
+## Landing page CTA
 
-Your read: {archetype}
-Stage: {stage_bucket}
-Fit: {one-line summary}
+Add button in nav/hero:
 
-🔗 Full analysis (founder + recruiter views, roadmap):
-{baseUrl}/analyse?from=whatsapp&token={oneTimeToken}
+`Try on WhatsApp →`
 
-Reply with your email to save your profile and join the pool.
-```
+Link:
+`https://wa.me/[YOUR_NUMBER]?text=Hi`
 
-### 6. Optional: save profile via reply
-
-- Store `wa_id → session` mapping (Redis/DB)
-- When user replies with text that looks like email:
-  - Call join-pool or a lightweight "save from WhatsApp" flow
-  - Create builder row, send profile link in reply
-
-## Environment variables (Twilio)
-
-```
-TWILIO_ACCOUNT_SID=AC...
-TWILIO_AUTH_TOKEN=...
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
-NEXT_PUBLIC_WHATSAPP_NUMBER=14155238886
-```
-
-`NEXT_PUBLIC_WHATSAPP_NUMBER` is shown on the site — users tap it to open WhatsApp. Use the number without `+` (e.g. `14155238886` for US, `919876543210` for India).
-
-## Twilio webhook setup
-
-1. Go to [Twilio Console](https://console.twilio.com) → Messaging → Try it out → Send a WhatsApp message
-2. Under "Sandbox settings" or your WhatsApp sender, set **When a message comes in** to:
-   ```
-   https://your-app.vercel.app/api/webhooks/whatsapp
-   ```
-3. Method: **POST**
-4. Save. Twilio will POST incoming messages to this URL.
-
-## Cost considerations
-
-- WhatsApp Business API: per-conversation pricing (Meta)
-- Provider fees (Twilio, etc.)
-- Extract API: existing OpenAI/Anthropic costs
-
-## Security
-
-- Validate webhook signature (Meta sends `X-Hub-Signature-256`)
-- Rate limit by `wa_id` to prevent abuse
-- Validate media type/size before processing
-
-## Next steps
-
-1. Choose provider (Meta direct vs Twilio/360dialog)
-2. Create webhook route and verify handshake
-3. Implement media download + extract pipeline
-4. Add templated reply logic
-5. Test end-to-end with a real WhatsApp number
+Use number without `+` (e.g., `9198XXXXXXXX`).

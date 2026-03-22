@@ -61,7 +61,7 @@ export default function RecruitersPage() {
         ),
       );
     } catch (err: unknown) {
-      setBatchError("Analysis failed for one or more CVs. Add ANTHROPIC_API_KEY and retry.");
+      setBatchError("Analysis failed for one or more CVs. Add GROQ_API_KEY (or SARVAM_API_KEY) and retry.");
       setItems((prev) =>
         prev.map((x) =>
           x.id === id
