@@ -208,6 +208,37 @@ export default function LandingPage() {
           <a href="/analyse" className="btn-primary" style={{ fontSize: 14, padding: "13px 40px" }}>
             Analyse with text / URL →
           </a>
+          <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 80, height: 1, background: "#e8e2da" }} />
+            <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, color: "#c0b8b0", letterSpacing: 2 }}>OR</span>
+            <div style={{ flex: 1, minWidth: 80, height: 1, background: "#e8e2da" }} />
+          </div>
+          <a
+            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "14155238886"}?text=Hi%2C%20I%27d%20like%20to%20get%20my%20CV%20analysed`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              marginTop: 16,
+              padding: "12px 24px",
+              background: "#25D366",
+              color: "#fff",
+              borderRadius: 10,
+              fontWeight: 700,
+              fontSize: 14,
+              textDecoration: "none",
+              transition: "all .2s",
+              boxShadow: "0 2px 12px rgba(37,211,102,0.3)",
+            }}
+          >
+            <span style={{ fontSize: 20 }}>💬</span>
+            Drop your CV on WhatsApp
+          </a>
+          <p style={{ marginTop: 8, fontSize: 12, color: "#9a9088", lineHeight: 1.5 }}>
+            Send your PDF to our WhatsApp — get archetype, founder & recruiter reads in chat
+          </p>
           <div style={{ marginTop: 12, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "#c0b8b0", letterSpacing: 2 }}>
             FREE · 30 SECONDS · NO SIGNUP
           </div>
@@ -390,9 +421,19 @@ export default function LandingPage() {
         <p style={{ fontSize: 14, color: "#555", lineHeight: 1.8, maxWidth: 400, margin: "0 auto 36px" }}>
           Drop your profile. Get your archetype, stage fit, and 90-day roadmap — free.
         </p>
-        <a href="/analyse" className="btn-primary" style={{ fontSize: 15, padding: "16px 48px" }}>
-          Analyse my profile →
-        </a>
+        <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+          <a href="/analyse" className="btn-primary" style={{ fontSize: 15, padding: "16px 48px" }}>
+            Analyse my profile →
+          </a>
+          <a
+            href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "14155238886"}?text=Hi%2C%20I%27d%20like%20to%20get%20my%20CV%20analysed`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "16px 32px", background: "#25D366", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: "none", border: "none", cursor: "pointer" }}
+          >
+            <span>💬</span> Or send via WhatsApp
+          </a>
+        </div>
       </section>
 
     </div>

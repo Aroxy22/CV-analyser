@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<UserRole>("user");
   const [email, setEmail] = useState<string>("");
+  const [profileToken, setProfileToken] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -24,6 +25,13 @@ export default function DashboardPage() {
       setRole(userRole);
       setEmail(data.user.email || "");
       document.cookie = `${USER_ROLE_COOKIE}=${userRole}; path=/; max-age=2592000; samesite=lax`;
+      const session = await authClient.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (token) {
+        const res = await fetch("/api/me/profile", { headers: { Authorization: `Bearer ${token}` } });
+        const json = await res.json();
+        if (json.hasProfile && json.profileToken) setProfileToken(json.profileToken);
+      }
       setLoading(false);
     }
     load();
@@ -63,10 +71,26 @@ export default function DashboardPage() {
           </p>
         </div>
 
+        {!profileToken && (
+          <div style={{ background: "linear-gradient(135deg, #fff8f5 0%, #f0fdf8 100%)", border: "1.5px solid #ff4d0025", borderRadius: 14, padding: 20, marginBottom: 20 }}>
+            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "#ff4d00", letterSpacing: 1.5, marginBottom: 8 }}>NEXT STEP</div>
+            <h2 style={{ margin: 0, marginBottom: 8, fontSize: 18, fontWeight: 700 }}>Build your profile</h2>
+            <p style={{ margin: 0, marginBottom: 14, fontSize: 13, color: "#6b6460", lineHeight: 1.6 }}>
+              Run a free CV analysis to get your archetype, fit score, and founder/recruiter reads. Then join the pool to be found.
+            </p>
+            <Link href="/analyse" style={{ display: "inline-block", padding: "12px 24px", background: "#ff4d00", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>
+              Build my profile →
+            </Link>
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12 }}>
-          <Link href="/analyse" style={cardStyle}>Run CV analysis</Link>
+          <Link href="/analyse" style={cardStyle}>{profileToken ? "Run another analysis" : "Run CV analysis"}</Link>
+          {profileToken && (
+            <Link href={`/profile?token=${profileToken}`} style={{ ...cardStyle, borderColor: "#10b98140", background: "#f0fdf8" }}>View my profile</Link>
+          )}
+          <Link href="/profile/access" style={cardStyle}>{profileToken ? "Get profile link" : "Profile access"}</Link>
           <Link href="/jobs" style={cardStyle}>Browse jobs</Link>
-          <Link href="/profile/access" style={cardStyle}>Profile access</Link>
           {(role === "founder" || role === "admin") && <Link href="/jobs/post" style={cardStyle}>Post a job</Link>}
           {role === "admin" && <Link href="/admin" style={cardStyle}>Open admin</Link>}
         </div>

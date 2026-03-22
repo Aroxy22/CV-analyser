@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useEffect } from "react";
+import { authClient } from "@/lib/auth-client";
 
 function AccessInner() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "sent" | "notfound" | "error">("idle");
+
+  useEffect(() => {
+    authClient.auth.getUser().then(({ data }) => {
+      if (data.user?.email && !email) setEmail(data.user.email);
+    });
+  }, []);
 
   const handleSubmit = async () => {
     if (!email.trim()) return;

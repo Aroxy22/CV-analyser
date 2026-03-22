@@ -55,7 +55,11 @@ function LoginInner() {
       const { data } = await authClient.auth.getUser();
       const resolvedRole = getRoleFromMetadata(data.user?.user_metadata);
       document.cookie = `${USER_ROLE_COOKIE}=${resolvedRole}; path=/; max-age=2592000; samesite=lax`;
-      router.push("/dashboard");
+      if (mode === "signup") {
+        router.push("/analyse?from=signup");
+      } else {
+        router.push("/dashboard");
+      }
       router.refresh();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Authentication failed.");

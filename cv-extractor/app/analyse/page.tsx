@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import TrackCard from "@/components/TrackCard";
 import AppNav from "@/components/AppNav";
+import { authClient } from "@/lib/auth-client";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://xsbsoevqqvnxmtxuytiu.supabase.co";
 const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -118,6 +119,7 @@ export default function AnalysePage() {
   const [profileToken, setProfileToken] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [fromParsePath, setFromParsePath] = useState(false);
+  const [fromSignup, setFromSignup] = useState(false);
   const [parsePathArchetype, setParsePathArchetype] = useState<string | null>(null);
   const [cvId, setCvId] = useState<string | null>(null);
   const [cvAnalysisId, setCvAnalysisId] = useState<string | null>(null);
@@ -135,6 +137,12 @@ export default function AnalysePage() {
     const archetypeParam = params.get("archetype");
     const emailParam = params.get("email");
     const stageParam = params.get("stage");
+    if (from === "signup") {
+      setFromSignup(true);
+      authClient.auth.getUser().then(({ data }) => {
+        if (data.user?.email) setEmail(data.user.email);
+      });
+    }
     if (from === "parsepath") {
       setFromParsePath(true);
       if (emailParam) setEmail(emailParam);
@@ -472,6 +480,16 @@ export default function AnalysePage() {
         {/* INPUT FORM */}
         {!analysis && !isLoading && (
           <div className="reveal">
+            {fromSignup && (
+              <div style={{ marginBottom: 28, background: "#f0fdf8", border: "1.5px solid #10b98125", borderRadius: 12, padding: "16px 20px", display: "flex", alignItems: "flex-start", gap: 14 }}>
+                <div style={{ fontSize: 28, flexShrink: 0 }}>🎉</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "#10b981", marginBottom: 2, fontFamily: "'DM Mono',monospace", letterSpacing: 0.5, textTransform: "uppercase" }}>Account created</div>
+                  <div style={{ fontSize: 14, color: "#1a1a1a", fontWeight: 600, marginBottom: 4 }}>Let&apos;s build your profile</div>
+                  <div style={{ fontSize: 13, color: "#6b6460", lineHeight: 1.6 }}>Upload your CV or answer a few questions. Free analysis — then optionally join the pool to be found by founders.</div>
+                </div>
+              </div>
+            )}
             {fromParsePath && parsePathArchetype && (() => {
               const arch = ARCHETYPES[parsePathArchetype];
               return arch ? (
@@ -494,6 +512,20 @@ export default function AnalysePage() {
               <p style={{ fontSize: 13, color: "#9a9088", lineHeight: 1.7, maxWidth: 420 }}>Same skills — completely different reads. 8/10 builders are surprised.</p>
             </div>
 
+            <div style={{ marginBottom: 20, padding: "14px 18px", background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: "#166534", marginBottom: 2 }}>💬 Prefer WhatsApp?</div>
+                <div style={{ fontSize: 12, color: "#15803d" }}>Send your CV PDF to our WhatsApp — get your archetype & reads in chat</div>
+              </div>
+              <a
+                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "14155238886"}?text=Hi%2C%20I%27d%20like%20to%20get%20my%20CV%20analysed`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 18px", background: "#25D366", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 13, textDecoration: "none", whiteSpace: "nowrap" }}
+              >
+                Open WhatsApp →
+              </a>
+            </div>
             <div className="step-block">
               <div className="step-head"><span className="step-num">1</span>What do you want to share?</div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

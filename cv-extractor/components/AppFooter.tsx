@@ -15,11 +15,19 @@ export default function AppFooter() {
         background: "#f5f2ee",
       }}
     >
-      <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "center" }}>
         <Link href="/jobs" style={linkStyle}>Browse Jobs</Link>
         <Link href="/founders" style={linkStyle}>For Founders</Link>
         <Link href="/seed" style={linkStyle}>The Seed</Link>
         <Link href="/pricing" style={linkStyle}>Pricing</Link>
+        <a
+          href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "14155238886"}?text=Hi%2C%20I%27d%20like%20to%20get%20my%20CV%20analysed`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ ...linkStyle, display: "inline-flex", alignItems: "center", gap: 6, color: "#25D366", fontWeight: 600 }}
+        >
+          <span>💬</span> Drop CV on WhatsApp
+        </a>
       </div>
       <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "#b0a8a0" }}>
         © 2026 JoinStartup.app

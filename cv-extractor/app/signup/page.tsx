@@ -1,244 +1,324 @@
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Sign Up — JoinStartup",
-};
+import { useState, useEffect } from "react";
+import Link from "next/link";
 
-export default function Page() {
-  const html = `<!DOCTYPE html><html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Sign Up — JoinStartup</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#f5f2ee;--surface:#ffffff;--border:#e0dbd4;--border2:#d0c9c0;--orange:#ff4d00;--orange-d:#e63d00;--orange-t:#ff4d0012;--orange-m:#ff4d0030;--dark:#1a1a1a;--muted:#6b6460;--muted2:#9a9088;--muted3:#b0a8a0;--indigo:#6366f1;--green:#10b981;--pink:#ec4899}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--dark);font-family:'DM Sans',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 48px;border-bottom:1px solid var(--border);background:var(--bg)}
-.nav-logo{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;letter-spacing:1px;color:var(--dark);text-decoration:none}
-.nav-dot{color:var(--orange)}
-.nav-back{font-size:13px;color:var(--muted);text-decoration:none;font-family:'DM Mono',monospace;transition:color .2s}
-.nav-back:hover{color:var(--dark)}
+type Persona = "builder" | "founder" | "recruiter" | "seed";
 
-/* MAIN LAYOUT */
-.signup-layout{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:calc(100vh - 57px)}
+const PERSONAS: { id: Persona; emoji: string; title: string; desc: string; price: string }[] = [
+  { id: "builder", emoji: "⚙️", title: "I'm a builder", desc: "Get analysed. Join the pool. Be found.", price: "₹499 one-time" },
+  { id: "founder", emoji: "🚀", title: "I'm a founder", desc: "Search the builder pool. Find talent.", price: "₹2,999/mo" },
+  { id: "recruiter", emoji: "📋", title: "I'm a recruiter", desc: "Batch CVs. Ranked shortlists.", price: "₹9,999/mo" },
+  { id: "seed", emoji: "🌱", title: "The Sunday Seed", desc: "Weekly curated roles. Free.", price: "Free" },
+];
 
-/* LEFT — persona select */
-.left-panel{padding:64px 56px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--border)}
-.left-panel h1{font-family:'Instrument Serif',serif;font-size:clamp(28px,3.5vw,44px);font-weight:400;letter-spacing:-1.5px;line-height:1.1;margin-bottom:12px}
-.accent{color:var(--orange);font-style:italic}
-.left-panel .sub{font-size:15px;color:var(--muted);line-height:1.7;margin-bottom:36px}
+export default function SignupPage() {
+  const [persona, setPersona] = useState<Persona>("builder");
+  const [mounted, setMounted] = useState(false);
+  // Founder form
+  const [fName, setFName] = useState("");
+  const [fEmail, setFEmail] = useState("");
+  const [fCompany, setFCompany] = useState("");
+  const [fStage, setFStage] = useState("");
+  const [fLoading, setFLoading] = useState(false);
+  const [fSuccess, setFSuccess] = useState(false);
+  // Recruiter form (mailto fallback)
+  const [rName, setRName] = useState("");
+  const [rEmail, setREmail] = useState("");
+  const [rCompany, setRCompany] = useState("");
+  // Seed form
+  const [sEmail, setSEmail] = useState("");
+  const [sLoading, setSLoading] = useState(false);
+  const [sSuccess, setSSuccess] = useState(false);
 
-.persona-cards{display:flex;flex-direction:column;gap:10px}
-.persona{border:1.5px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:14px;text-decoration:none;color:inherit}
-.persona:hover{border-color:var(--border2);transform:translateX(4px)}
-.persona.active{border-color:var(--orange);background:var(--orange-t)}
-.persona-icon{font-size:22px;flex-shrink:0;width:36px;text-align:center}
-.persona-text h3{font-size:14px;font-weight:700;margin-bottom:3px;letter-spacing:-.2px}
-.persona-text p{font-size:12px;color:var(--muted);line-height:1.4}
-.persona-price{margin-left:auto;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted2);white-space:nowrap;flex-shrink:0}
-.persona.active .persona-price{color:var(--orange)}
+  useEffect(() => setMounted(true), []);
 
-/* RIGHT — form */
-.right-panel{padding:64px 56px;display:flex;flex-direction:column;justify-content:center;overflow-y:auto}
+  const handleFounderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fEmail) return;
+    setFLoading(true);
+    try {
+      const res = await fetch("/api/founder-waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: fEmail,
+          name: fName || undefined,
+          company: fCompany || undefined,
+          source: "signup_page",
+        }),
+      });
+      if (res.ok) setFSuccess(true);
+    } finally {
+      setFLoading(false);
+    }
+  };
 
-.form-step{display:none}
-.form-step.active{display:block}
+  const handleSeedSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!sEmail) return;
+    setSLoading(true);
+    try {
+      const res = await fetch("/api/seed-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: sEmail, source: "signup_page" }),
+      });
+      const data = await res.json();
+      if (data.ok !== false) setSSuccess(true);
+    } finally {
+      setSLoading(false);
+    }
+  };
 
-.form-eyebrow{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted2);margin-bottom:20px}
-.form-title{font-family:'Instrument Serif',serif;font-size:26px;font-weight:400;letter-spacing:-.5px;margin-bottom:6px}
-.form-sub{font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6}
+  const recruiterMailto = `mailto:hello@joinstartup.app?subject=Recruiter access request&body=Name: ${encodeURIComponent(rName || "—")}%0AEmail: ${encodeURIComponent(rEmail || "—")}%0ACompany: ${encodeURIComponent(rCompany || "—")}%0A%0AI'd like to learn more about the batch CV processing tool.`;
 
-.field{margin-bottom:18px}
-.field label{display:block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;color:var(--muted2);margin-bottom:7px}
-.field input,.field textarea,.field select{width:100%;padding:12px 14px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--dark);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;resize:none}
-.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--orange)}
-.field select{cursor:pointer}
-
-.submit-btn{width:100%;padding:14px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:800;font-size:14px;cursor:pointer;text-decoration:none;display:block;text-align:center;transition:all .2s;margin-top:4px}
-.submit-btn:hover{transform:translateY(-1px)}
-
-.or-divider{display:flex;align-items:center;gap:12px;margin:16px 0;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted3)}
-.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border)}
-
-.alt-link{text-align:center;font-size:13px;color:var(--muted)}
-.alt-link a{color:var(--orange);text-decoration:none;font-weight:600}
-.alt-link a:hover{text-decoration:underline}
-
-/* SUCCESS */
-.success-state{text-align:center;padding:40px 20px}
-.success-state .check-circle{width:60px;height:60px;background:var(--orange-t);border:2px solid var(--orange-m);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px}
-.success-state h2{font-family:'Instrument Serif',serif;font-size:26px;font-weight:400;letter-spacing:-.5px;margin-bottom:8px}
-.success-state p{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px}
-
-footer{border-top:1px solid var(--border);padding:18px 48px;display:flex;justify-content:space-between;align-items:center}
-.footer-copy{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted3)}
-.footer-links-sm{display:flex;gap:20px;list-style:none}
-.footer-links-sm a{font-size:11px;color:var(--muted2);text-decoration:none}
-.footer-links-sm a:hover{color:var(--dark)}
-
-@media(max-width:768px){
-  .signup-layout{grid-template-columns:1fr}
-  .left-panel{border-right:none;border-bottom:1px solid var(--border);padding:40px 24px}
-  .right-panel{padding:40px 24px}
-  nav{padding:14px 20px}
-}
-</style></head><body>
-<nav>
-  <a href="/" class="nav-logo"><span class="nav-dot">◆</span> JOINSTARTUP</a>
-  <a href="/" class="nav-back">← Back to home</a>
-</nav>
-
-<div class="signup-layout">
-  <!-- LEFT — choose who you are -->
-  <div class="left-panel">
-    <h1>Join India's<br/><span class="accent">startup talent</span><br/>layer.</h1>
-    <p class="sub">Choose how you want to use JoinStartup.</p>
-
-    <div class="persona-cards">
-      <div class="persona active" onclick="selectPersona('builder', this)">
-        <div class="persona-icon">⚙️</div>
-        <div class="persona-text">
-          <h3>I'm a builder</h3>
-          <p>Get analysed. Join the pool. Be found by founders.</p>
-        </div>
-        <div class="persona-price">₹499 one-time</div>
-      </div>
-      <div class="persona" onclick="selectPersona('founder', this)">
-        <div class="persona-icon">🚀</div>
-        <div class="persona-text">
-          <h3>I'm a founder</h3>
-          <p>Search the builder pool. Find startup-ready talent.</p>
-        </div>
-        <div class="persona-price">₹2,999/mo</div>
-      </div>
-      <div class="persona" onclick="selectPersona('recruiter', this)">
-        <div class="persona-icon">📋</div>
-        <div class="persona-text">
-          <h3>I'm a recruiter</h3>
-          <p>Batch process CVs. Get ranked shortlists.</p>
-        </div>
-        <div class="persona-price">₹9,999/mo</div>
-      </div>
-      <div class="persona" onclick="selectPersona('seed', this)">
-        <div class="persona-icon">🌱</div>
-        <div class="persona-text">
-          <h3>Just the Sunday Seed</h3>
-          <p>Weekly curated roles. Free forever.</p>
-        </div>
-        <div class="persona-price">Free</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- RIGHT — form -->
-  <div class="right-panel">
-
-    <!-- BUILDER form -->
-    <div class="form-step active" id="form-builder">
-      <div class="form-eyebrow">BUILDER SIGNUP</div>
-      <h2 class="form-title">Start with your analysis.</h2>
-      <p class="form-sub">Free to analyse. ₹499 to join the pool and be visible to founders.</p>
-      <div class="field"><label>YOUR GOAL</label><textarea rows="3" placeholder="e.g. Senior engineer, 5 yrs, Bangalore — want founding role at AI startup with equity"></textarea></div>
-      <div class="field"><label>YOUR EMAIL</label><input type="email" placeholder="you@email.com"></div>
-      <a href="/analyse" class="submit-btn" style="background:var(--orange);color:#fff">Analyse My Profile Free →</a>
-      <div class="or-divider">OR</div>
-      <div class="alt-link">Already analysed? <a href="/profile/access">Get your profile link →</a></div>
-    </div>
-
-    <!-- FOUNDER form -->
-    <div class="form-step" id="form-founder">
-      <div class="form-eyebrow">FOUNDER SIGNUP</div>
-      <h2 class="form-title">Find builders who ship.</h2>
-      <p class="form-sub">Search the pool by archetype and stage. 5 unlocks/month at ₹2,999.</p>
-      <div class="field"><label>YOUR NAME</label><input type="text" placeholder="Arjun Mehta"></div>
-      <div class="field"><label>YOUR EMAIL</label><input type="email" placeholder="you@startup.com"></div>
-      <div class="field"><label>COMPANY / STARTUP</label><input type="text" placeholder="Apex Dynamics"></div>
-      <div class="field"><label>STAGE</label>
-        <select>
-          <option value="">Select stage...</option>
-          <option>Pre-Seed</option><option>Seed</option><option>Series A</option><option>Series B+</option>
-        </select>
-      </div>
-      <button class="submit-btn" style="background:var(--indigo);color:#fff" onclick="showSuccess('founder')">Request Founder Access →</button>
-      <div class="alt-link" style="margin-top:12px">Questions? <a href="mailto:hello@joinstartup.app">hello@joinstartup.app</a></div>
-    </div>
-
-    <!-- RECRUITER form -->
-    <div class="form-step" id="form-recruiter">
-      <div class="form-eyebrow">RECRUITER SIGNUP</div>
-      <h2 class="form-title">Batch. Rank. Shortlist.</h2>
-      <p class="form-sub">Upload up to 200 CVs. Get AI-ranked shortlists. Export to ATS. ₹9,999/month.</p>
-      <div class="field"><label>YOUR NAME</label><input type="text" placeholder="Priya Sharma"></div>
-      <div class="field"><label>YOUR EMAIL</label><input type="email" placeholder="you@recruitco.com"></div>
-      <div class="field"><label>COMPANY</label><input type="text" placeholder="Talent Partners India"></div>
-      <div class="field"><label>CVS PER MONTH (APPROX)</label>
-        <select>
-          <option>1–50</option><option>50–100</option><option>100–200</option><option>200+</option>
-        </select>
-      </div>
-      <button class="submit-btn" style="background:var(--pink);color:#fff" onclick="showSuccess('recruiter')">Request Recruiter Access →</button>
-      <div class="alt-link" style="margin-top:12px">Questions? <a href="mailto:hello@joinstartup.app">hello@joinstartup.app</a></div>
-    </div>
-
-    <!-- SEED form -->
-    <div class="form-step" id="form-seed">
-      <div class="form-eyebrow">THE SUNDAY SEED</div>
-      <h2 class="form-title">Top 5 equity roles,<br/>every Sunday.</h2>
-      <p class="form-sub">Free. No spam. Unsubscribe anytime. 2,400+ builders already subscribed.</p>
-      <div class="field"><label>YOUR EMAIL</label><input type="email" placeholder="you@email.com" id="seedSignupEmail"></div>
-      <button class="submit-btn" style="background:var(--orange);color:#fff" onclick="showSuccess('seed')">Send Me The Seed →</button>
-      <div class="alt-link" style="margin-top:12px">Want more? <a href="/jobs">Browse all roles →</a></div>
-    </div>
-
-    <!-- SUCCESS states -->
-    <div class="form-step" id="form-success-founder">
-      <div class="success-state">
-        <div class="check-circle">✓</div>
-        <h2>Request received.</h2>
-        <p>We'll set up your founder access within 24 hours. You'll receive an email at the address you provided with next steps.</p>
-        <a href="/founders" style="display:inline-block;padding:12px 28px;background:var(--indigo);color:#fff;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none">Learn more about founder access →</a>
-      </div>
-    </div>
-    <div class="form-step" id="form-success-recruiter">
-      <div class="success-state">
-        <div class="check-circle">✓</div>
-        <h2>Request received.</h2>
-        <p>We'll be in touch within 24 hours to set up your recruiter account and walk you through the batch upload tool.</p>
-        <a href="/" style="display:inline-block;padding:12px 28px;background:var(--pink);color:#fff;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none">Back to home →</a>
-      </div>
-    </div>
-    <div class="form-step" id="form-success-seed">
-      <div class="success-state">
-        <div class="check-circle">🌱</div>
-        <h2>You're on the list.</h2>
-        <p>First Seed lands this Sunday at 6 PM IST. Check your inbox — it comes from <a href="mailto:hello@joinstartup.app">hello@joinstartup.app</a> so add us to your contacts.</p>
-        <a href="/jobs" style="display:inline-block;padding:12px 28px;background:var(--orange);color:#fff;border-radius:8px;font-weight:700;font-size:14px;text-decoration:none">Browse roles in the meantime →</a>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<footer>
-  <div class="footer-copy">© 2026 JoinStartup.app</div>
-  <ul class="footer-links-sm">
-    <li><a href="/pricing">Pricing</a></li>
-    <li><a href="/seed">The Seed</a></li>
-    <li><a href="mailto:hello@joinstartup.app">Contact</a></li>
-  </ul>
-</footer>
-
-<script>
-function selectPersona(type, el) {
-  document.querySelectorAll('.persona').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.form-step').forEach(f => f.classList.remove('active'));
-  do`;
   return (
     <div
-      dangerouslySetInnerHTML={{ __html: html }}
-      suppressHydrationWarning
-    />
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(165deg, #f5f2ee 0%, #f0ebe4 50%, #f5f2ee 100%)",
+        color: "#1a1a1a",
+        fontFamily: "'DM Sans', system-ui, sans-serif",
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        alignItems: "stretch",
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
+        .signup-fade { opacity: 0; transform: translateY(12px); transition: opacity 0.5s ease, transform 0.5s ease; }
+        .signup-fade.in { opacity: 1; transform: translateY(0); }
+        .persona-card { transition: all 0.2s; cursor: pointer; }
+        .persona-card:hover { transform: translateX(4px); }
+        @media (max-width: 900px) {
+          .signup-grid { grid-template-columns: 1fr !important; }
+          .signup-left { min-height: 240px; padding: 32px 24px !important; }
+          .signup-right { padding: 32px 24px !important; }
+        }
+      `}</style>
+
+      {/* Left panel */}
+      <div
+        className="signup-left"
+        style={{
+          padding: "48px 56px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: "-20%",
+            left: "-10%",
+            width: 400,
+            height: 400,
+            background: "radial-gradient(circle, rgba(255,77,0,0.08) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+        <div className={`signup-fade ${mounted ? "in" : ""}`} style={{ position: "relative", zIndex: 1 }}>
+          <Link
+            href="/"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              fontFamily: "'DM Mono', monospace",
+              fontSize: 11,
+              color: "#9a9088",
+              letterSpacing: 1.5,
+              textDecoration: "none",
+              marginBottom: 40,
+            }}
+          >
+            <span style={{ color: "#ff4d00" }}>◆</span> JOINSTARTUP
+          </Link>
+          <h1
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontSize: "clamp(32px, 4vw, 48px)",
+              fontWeight: 400,
+              letterSpacing: -1.5,
+              lineHeight: 1.1,
+              marginBottom: 16,
+            }}
+          >
+            Join India&apos;s<br />
+            <span style={{ color: "#ff4d00", fontStyle: "italic" }}>startup talent</span>
+            <br />
+            layer.
+          </h1>
+          <p style={{ fontSize: 15, color: "#6b6460", lineHeight: 1.7, maxWidth: 360, marginBottom: 32 }}>
+            Choose how you want to use JoinStartup.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {PERSONAS.map((p) => (
+              <div
+                key={p.id}
+                className="persona-card"
+                onClick={() => setPersona(p.id)}
+                style={{
+                  padding: "16px 20px",
+                  borderRadius: 12,
+                  border: `1.5px solid ${persona === p.id ? "#ff4d00" : "#e8e2da"}`,
+                  background: persona === p.id ? "#fff8f5" : "#fff",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                }}
+              >
+                <div style={{ fontSize: 22, flexShrink: 0 }}>{p.emoji}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{p.title}</div>
+                  <div style={{ fontSize: 12, color: "#6b6460" }}>{p.desc}</div>
+                </div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: persona === p.id ? "#ff4d00" : "#9a9088" }}>{p.price}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div
+        className="signup-right"
+        style={{
+          padding: "48px 56px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          background: "rgba(255,255,255,0.6)",
+          backdropFilter: "blur(20px)",
+          borderLeft: "1px solid rgba(232,226,218,0.8)",
+        }}
+      >
+        <div className={`signup-fade ${mounted ? "in" : ""}`} style={{ transitionDelay: "120ms", maxWidth: 420, margin: "0 auto", width: "100%" }}>
+          {persona === "builder" && (
+            <>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#9a9088", letterSpacing: 2, marginBottom: 12 }}>BUILDER</div>
+              <h2 style={{ fontSize: 24, fontWeight: 700, letterSpacing: -0.5, marginBottom: 8 }}>Start with your analysis</h2>
+              <p style={{ fontSize: 14, color: "#6b6460", lineHeight: 1.6, marginBottom: 28 }}>
+                Free to analyse. ₹499 to join the pool and be visible to founders.
+              </p>
+              <Link
+                href="/analyse"
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  padding: "14px 20px",
+                  background: "#ff4d00",
+                  color: "#fff",
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  textDecoration: "none",
+                  marginBottom: 16,
+                }}
+              >
+                Analyse my profile free →
+              </Link>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                <div style={{ flex: 1, height: 1, background: "#e8e2da" }} />
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#9a9088" }}>or</span>
+                <div style={{ flex: 1, height: 1, background: "#e8e2da" }} />
+              </div>
+              <Link
+                href="/login?mode=signup"
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  padding: "14px 20px",
+                  background: "#fff",
+                  color: "#1a1a1a",
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  fontSize: 15,
+                  textDecoration: "none",
+                  border: "1.5px solid #e8e2da",
+                }}
+              >
+                Create account first →
+              </Link>
+              <p style={{ marginTop: 20, fontSize: 13, color: "#9a9088", textAlign: "center" }}>
+                Already analysed? <Link href="/profile/access" style={{ color: "#ff4d00", fontWeight: 600, textDecoration: "none" }}>Get your profile link →</Link>
+              </p>
+            </>
+          )}
+
+          {persona === "founder" && (
+            fSuccess ? (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 36, marginBottom: 16 }}>✓</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#10b981", letterSpacing: 2, marginBottom: 12 }}>REQUEST RECEIVED</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>We&apos;ll be in touch</h2>
+                <p style={{ fontSize: 14, color: "#6b6460", lineHeight: 1.7, marginBottom: 24 }}>
+                  Founder access is set up within 24 hours. Check your inbox for next steps.
+                </p>
+                <Link href="/founders" style={{ display: "inline-block", padding: "12px 24px", background: "#6366f1", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Learn more →</Link>
+              </div>
+            ) : (
+              <form onSubmit={handleFounderSubmit}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#9a9088", letterSpacing: 2, marginBottom: 12 }}>FOUNDER</div>
+                <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Find builders who ship</h2>
+                <p style={{ fontSize: 14, color: "#6b6460", lineHeight: 1.6, marginBottom: 24 }}>Search the pool by archetype and stage. We&apos;ll set you up within 24 hours.</p>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#9a9088", marginBottom: 6 }}>NAME</label>
+                  <input type="text" placeholder="Arjun Mehta" value={fName} onChange={(e) => setFName(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e0dbd4", fontSize: 14, background: "#fff" }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#9a9088", marginBottom: 6 }}>EMAIL *</label>
+                  <input type="email" required placeholder="you@startup.com" value={fEmail} onChange={(e) => setFEmail(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e0dbd4", fontSize: 14, background: "#fff" }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#9a9088", marginBottom: 6 }}>COMPANY / STARTUP</label>
+                  <input type="text" placeholder="Apex Dynamics" value={fCompany} onChange={(e) => setFCompany(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e0dbd4", fontSize: 14, background: "#fff" }} />
+                </div>
+                <button type="submit" disabled={fLoading || !fEmail} style={{ width: "100%", padding: "14px", background: fLoading || !fEmail ? "#e8e2da" : "#6366f1", color: fLoading || !fEmail ? "#9a9088" : "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 15, cursor: fLoading || !fEmail ? "not-allowed" : "pointer" }}>{fLoading ? "Sending…" : "Request founder access →"}</button>
+              </form>
+            )
+          )}
+
+          {persona === "recruiter" && (
+            <div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#9a9088", letterSpacing: 2, marginBottom: 12 }}>RECRUITER</div>
+              <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Batch. Rank. Shortlist.</h2>
+              <p style={{ fontSize: 14, color: "#6b6460", lineHeight: 1.6, marginBottom: 24 }}>Upload up to 200 CVs. AI-ranked shortlists. Export to ATS. ₹9,999/month.</p>
+              <a href="/recruiters" style={{ display: "block", textAlign: "center", padding: "14px 20px", background: "#ec4899", color: "#fff", borderRadius: 10, fontWeight: 700, fontSize: 15, textDecoration: "none", marginBottom: 16 }}>Learn about recruiter access →</a>
+              <p style={{ fontSize: 13, color: "#9a9088", textAlign: "center" }}>
+                Or <a href={recruiterMailto} style={{ color: "#ec4899", fontWeight: 600, textDecoration: "none" }}>email us</a> to request access.
+              </p>
+            </div>
+          )}
+
+          {persona === "seed" && (
+            sSuccess ? (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 36, marginBottom: 16 }}>🌱</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#10b981", letterSpacing: 2, marginBottom: 12 }}>YOU&apos;RE ON THE LIST</div>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>First Seed this Sunday</h2>
+                <p style={{ fontSize: 14, color: "#6b6460", lineHeight: 1.7, marginBottom: 24 }}>Check your inbox. Add hello@joinstartup.app to your contacts.</p>
+                <Link href="/jobs" style={{ display: "inline-block", padding: "12px 24px", background: "#ff4d00", color: "#fff", borderRadius: 8, fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Browse roles →</Link>
+              </div>
+            ) : (
+              <form onSubmit={handleSeedSubmit}>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: "#9a9088", letterSpacing: 2, marginBottom: 12 }}>THE SUNDAY SEED</div>
+                <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Top 5 equity roles, every Sunday</h2>
+                <p style={{ fontSize: 14, color: "#6b6460", lineHeight: 1.6, marginBottom: 24 }}>Free. No spam. Unsubscribe anytime.</p>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#9a9088", marginBottom: 6 }}>YOUR EMAIL</label>
+                  <input type="email" required placeholder="you@email.com" value={sEmail} onChange={(e) => setSEmail(e.target.value)} style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e0dbd4", fontSize: 14, background: "#fff" }} />
+                </div>
+                <button type="submit" disabled={sLoading || !sEmail} style={{ width: "100%", padding: "14px", background: sLoading || !sEmail ? "#e8e2da" : "#ff4d00", color: sLoading || !sEmail ? "#9a9088" : "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 15, cursor: sLoading || !sEmail ? "not-allowed" : "pointer" }}>{sLoading ? "Subscribing…" : "Send me the Seed →"}</button>
+                <p style={{ marginTop: 16, fontSize: 12, color: "#9a9088" }}><Link href="/jobs" style={{ color: "#ff4d00", fontWeight: 600, textDecoration: "none" }}>Browse all roles →</Link></p>
+              </form>
+            )
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
