@@ -33,7 +33,7 @@ export function HistoryPanel({ onSelect, onClose }: { onSelect: (id: string) => 
             onMouseEnter={e => (e.currentTarget.style.borderColor = "#7c5cfc55")}
             onMouseLeave={e => (e.currentTarget.style.borderColor = "#252535")}
           >
-            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{r.candidate_name ?? "Unknown Candidate"}</div>
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{r.candidate_name ?? "No name"}</div>
             <div style={{ fontSize: 12, color: "#888", marginBottom: 6 }}>{r.candidate_title ?? "—"}</div>
             {r.candidate_goal && (
               <div style={{ fontSize: 11, color: "#a78bfa", marginBottom: 6, background: "#7c5cfc12", padding: "3px 8px", borderRadius: 8, display: "inline-block" }}>

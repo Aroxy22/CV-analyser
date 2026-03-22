@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { UserRole, USER_ROLE_COOKIE, getRoleFromMetadata } from "@/lib/user-role";
+import { UserRole, USER_ROLE_COOKIE, getRoleFromMetadata, normalizeRoleString } from "@/lib/user-role";
 
 type NavLink = { href: string; label: string };
 
@@ -15,18 +15,12 @@ const baseLinks: NavLink[] = [
   { href: "/pricing", label: "Pricing" },
 ];
 
-function roleLinks(role: UserRole): NavLink[] {
-  if (role === "admin") return [{ href: "/admin", label: "Admin" }];
-  if (role === "founder") return [{ href: "/dashboard", label: "Founder Hub" }];
-  return [{ href: "/dashboard", label: "My Dashboard" }];
-}
-
 export default function AppNav() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
-  const [role, setRole] = useState<UserRole>("candidate");
+  const [role, setRole] = useState<UserRole>("user");
   const pathname = usePathname();
 
   useEffect(() => {
@@ -41,9 +35,7 @@ export default function AppNav() {
         ?.split("=")[1];
       if (cookieRole && mounted) {
         setIsAuthed(true);
-        if (cookieRole === "candidate" || cookieRole === "founder" || cookieRole === "admin") {
-          setRole(cookieRole);
-        }
+        setRole(normalizeRoleString(cookieRole));
       }
 
       const { data } = await authClient.auth.getUser();
@@ -51,7 +43,7 @@ export default function AppNav() {
       const user = data.user;
       if (!user) {
         setIsAuthed(false);
-        setRole("candidate");
+        setRole("user");
         setLoading(false);
         return;
       }
@@ -67,7 +59,7 @@ export default function AppNav() {
       const user = session?.user;
       if (!user) {
         setIsAuthed(false);
-        setRole("candidate");
+        setRole("user");
         document.cookie = `${USER_ROLE_COOKIE}=; path=/; max-age=0; samesite=lax`;
         return;
       }

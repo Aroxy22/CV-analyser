@@ -11,7 +11,7 @@ function startsWithAny(pathname: string, prefixes: string[]) {
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const role = req.cookies.get(USER_ROLE_COOKIE)?.value || "candidate";
+  const role = req.cookies.get(USER_ROLE_COOKIE)?.value || "user";
 
   if (startsWithAny(pathname, protectedPaths)) {
     // Soft gate: requires role cookie set after auth.
@@ -22,11 +22,12 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  if (startsWithAny(pathname, founderPaths) && role !== "founder" && role !== "admin") {
+  const normalizedRole = role === "candidate" ? "user" : role;
+  if (startsWithAny(pathname, founderPaths) && normalizedRole !== "founder" && normalizedRole !== "admin") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
-  if (startsWithAny(pathname, adminPaths) && role !== "admin") {
+  if (startsWithAny(pathname, adminPaths) && normalizedRole !== "admin") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

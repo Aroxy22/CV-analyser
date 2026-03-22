@@ -10,7 +10,7 @@ import { UserRole, USER_ROLE_COOKIE, getRoleFromMetadata } from "@/lib/user-role
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<UserRole>("candidate");
+  const [role, setRole] = useState<UserRole>("user");
   const [email, setEmail] = useState<string>("");
 
   useEffect(() => {
@@ -37,10 +37,10 @@ export default function DashboardPage() {
 
   const roleText =
     role === "admin"
-      ? "Admin workspace: monitor platform, jobs, and quality."
+      ? "Admin: monitor platform quality and jobs."
       : role === "founder"
-        ? "Founder workspace: post roles, discover builders, and shortlist."
-        : "Candidate workspace: run analyses, track fit, and manage profile.";
+        ? "Post roles, discover builders, and shortlist."
+        : "Run CV analyses, save history, and track fit.";
 
   if (loading) {
     return <div style={{ minHeight: "100vh", background: "#f5f2ee", display: "grid", placeItems: "center" }}>Loading dashboard...</div>;
@@ -52,9 +52,11 @@ export default function DashboardPage() {
       <main style={{ maxWidth: 980, margin: "0 auto", padding: "28px 18px 56px" }}>
         <div style={{ background: "#fff", border: "1px solid #e8e2da", borderRadius: 14, padding: 20, marginBottom: 16 }}>
           <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: "#9a9088", marginBottom: 8 }}>
-            ROLE-BASED DASHBOARD
+            DASHBOARD
           </div>
-          <h1 style={{ margin: 0, marginBottom: 8, fontSize: 30 }}>Hello, {role}</h1>
+          <h1 style={{ margin: 0, marginBottom: 8, fontSize: 30 }}>
+            {role === "admin" ? "Admin" : role === "founder" ? "Founder hub" : "Your workspace"}
+          </h1>
           <p style={{ margin: 0, color: "#6b6460" }}>{roleText}</p>
           <p style={{ marginTop: 8, marginBottom: 0, fontSize: 13, color: "#9a9088" }}>
             Signed in as {email}
