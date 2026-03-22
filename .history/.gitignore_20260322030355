@@ -1,0 +1,8 @@
+node_modules/
+cv-extractor/node_modules/
+.env
+.env.local
+.next/
+dist/
+build/
+*.log

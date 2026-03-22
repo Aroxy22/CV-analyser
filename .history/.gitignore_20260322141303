@@ -1,0 +1,5 @@
+node_modules/
+cv-extractor/node_modules/
+.next/
+dist/
+build/

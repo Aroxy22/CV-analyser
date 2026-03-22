@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: cv-extractor
+    runtime: node
+    plan: starter          # $7/mo — needed for AI calls (free tier times out)
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://xsbsoevqqvnxmtxuytiu.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzYnNvZXZxcXZueG10eHV5dGl1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwOTkwNzcsImV4cCI6MjA4ODY3NTA3N30.I7JnlCmHafoFowh6TqepNR4YXxTL7pZdCFJHGmVFuVE
+      # Set this manually in the Render dashboard — never commit API keys to git
+      - key: ANTHROPIC_API_KEY
+        sync: false
