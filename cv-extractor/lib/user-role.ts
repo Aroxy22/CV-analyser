@@ -1,6 +1,7 @@
 export type UserRole = "user" | "founder" | "admin";
 
 export const USER_ROLE_COOKIE = "js_role";
+export const USER_TOKEN_COOKIE = "js_token";
 
 export function isUserRole(value: string | null | undefined): value is UserRole {
   return value === "user" || value === "founder" || value === "admin";

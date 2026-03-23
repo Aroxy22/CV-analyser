@@ -1,6 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
-}
+  output: "standalone",
+  async redirects() {
+    return [
+      {
+        source: "/unsubscribe",
+        destination: "/unsubscribed",
+        permanent: true,
+      },
+    ];
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

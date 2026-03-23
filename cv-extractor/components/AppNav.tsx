@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { UserRole, USER_ROLE_COOKIE, getRoleFromMetadata, normalizeRoleString } from "@/lib/user-role";
+import { UserRole, USER_ROLE_COOKIE, USER_TOKEN_COOKIE, getRoleFromMetadata, normalizeRoleString } from "@/lib/user-role";
 
 type NavLink = { href: string; label: string };
 
@@ -23,8 +23,11 @@ export default function AppNav() {
   const [role, setRole] = useState<UserRole>("user");
   const pathname = usePathname();
 
+  const secureSuffix = "; secure";
+  const tokenSecureSuffix = typeof window !== "undefined" && window.location.protocol === "https:" ? "; secure" : "";
+
   useEffect(() => {
-    let mounted = true;
+    let isActive = true;
     setMounted(true);
 
     async function loadSession() {
@@ -33,13 +36,13 @@ export default function AppNav() {
         .split("; ")
         .find((x) => x.startsWith(`${USER_ROLE_COOKIE}=`))
         ?.split("=")[1];
-      if (cookieRole && mounted) {
+      if (cookieRole && isActive) {
         setIsAuthed(true);
         setRole(normalizeRoleString(cookieRole));
       }
 
       const { data } = await authClient.auth.getUser();
-      if (!mounted) return;
+      if (!isActive) return;
       const user = data.user;
       if (!user) {
         setIsAuthed(false);
@@ -48,7 +51,12 @@ export default function AppNav() {
         return;
       }
       const resolvedRole = getRoleFromMetadata(user.user_metadata);
-      document.cookie = `${USER_ROLE_COOKIE}=${resolvedRole}; path=/; max-age=2592000; samesite=lax`;
+      document.cookie = `${USER_ROLE_COOKIE}=${resolvedRole}; path=/; max-age=2592000; samesite=lax${secureSuffix}`;
+      const session = await authClient.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (token) {
+        document.cookie = `${USER_TOKEN_COOKIE}=${token}; path=/; max-age=2592000; samesite=lax${tokenSecureSuffix}`;
+      }
       setRole(resolvedRole);
       setIsAuthed(true);
       setLoading(false);
@@ -60,17 +68,21 @@ export default function AppNav() {
       if (!user) {
         setIsAuthed(false);
         setRole("user");
-        document.cookie = `${USER_ROLE_COOKIE}=; path=/; max-age=0; samesite=lax`;
+        document.cookie = `${USER_ROLE_COOKIE}=; path=/; max-age=0; samesite=lax${secureSuffix}`;
+        document.cookie = `${USER_TOKEN_COOKIE}=; path=/; max-age=0; samesite=lax${tokenSecureSuffix}`;
         return;
       }
       const resolvedRole = getRoleFromMetadata(user.user_metadata);
       setRole(resolvedRole);
       setIsAuthed(true);
-      document.cookie = `${USER_ROLE_COOKIE}=${resolvedRole}; path=/; max-age=2592000; samesite=lax`;
+      document.cookie = `${USER_ROLE_COOKIE}=${resolvedRole}; path=/; max-age=2592000; samesite=lax${secureSuffix}`;
+      if (session?.access_token) {
+        document.cookie = `${USER_TOKEN_COOKIE}=${session.access_token}; path=/; max-age=2592000; samesite=lax${tokenSecureSuffix}`;
+      }
     });
 
     return () => {
-      mounted = false;
+      isActive = false;
       listener.subscription.unsubscribe();
     };
   }, []);
@@ -79,7 +91,8 @@ export default function AppNav() {
 
   async function handleLogout() {
     await authClient.auth.signOut();
-    document.cookie = `${USER_ROLE_COOKIE}=; path=/; max-age=0; samesite=lax`;
+    document.cookie = `${USER_ROLE_COOKIE}=; path=/; max-age=0; samesite=lax${secureSuffix}`;
+    document.cookie = `${USER_TOKEN_COOKIE}=; path=/; max-age=0; samesite=lax${tokenSecureSuffix}`;
     setIsAuthed(false);
     setMenuOpen(false);
     window.location.href = "/";

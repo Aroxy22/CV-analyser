@@ -1,2 +1,3 @@
 node_modules/
 cv-extractor/node_modules/
+cv-extractor/next-env.d.ts

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AppNav from "@/components/AppNav";
 import { authClient } from "@/lib/auth-client";
-import { UserRole, USER_ROLE_COOKIE, getRoleFromMetadata } from "@/lib/user-role";
+import { UserRole, USER_ROLE_COOKIE, USER_TOKEN_COOKIE, getRoleFromMetadata } from "@/lib/user-role";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -13,33 +13,47 @@ export default function DashboardPage() {
   const [role, setRole] = useState<UserRole>("user");
   const [email, setEmail] = useState<string>("");
   const [profileToken, setProfileToken] = useState<string | null>(null);
+  const secureSuffix = "; secure";
+  const tokenSecureSuffix = typeof window !== "undefined" && window.location.protocol === "https:" ? "; secure" : "";
 
   useEffect(() => {
     async function load() {
-      const { data } = await authClient.auth.getUser();
-      if (!data.user) {
-        router.push("/login");
-        return;
+      try {
+        const { data } = await authClient.auth.getUser();
+        if (!data.user) {
+          setLoading(false);
+          window.location.href = "/login";
+          return;
+        }
+
+        const userRole = getRoleFromMetadata(data.user.user_metadata);
+        setRole(userRole);
+        setEmail(data.user.email || "");
+        document.cookie = `${USER_ROLE_COOKIE}=${userRole}; path=/; max-age=2592000; samesite=lax${secureSuffix}`;
+
+        const session = await authClient.auth.getSession();
+        const token = session.data.session?.access_token;
+        if (token) {
+          document.cookie = `${USER_TOKEN_COOKIE}=${token}; path=/; max-age=2592000; samesite=lax${tokenSecureSuffix}`;
+          const res = await fetch("/api/me/profile", { headers: { Authorization: `Bearer ${token}` } });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.hasProfile && json.profileToken) setProfileToken(json.profileToken);
+          }
+        }
+      } catch (err) {
+        console.error("[dashboard] load failed", err);
+      } finally {
+        setLoading(false);
       }
-      const userRole = getRoleFromMetadata(data.user.user_metadata);
-      setRole(userRole);
-      setEmail(data.user.email || "");
-      document.cookie = `${USER_ROLE_COOKIE}=${userRole}; path=/; max-age=2592000; samesite=lax`;
-      const session = await authClient.auth.getSession();
-      const token = session.data.session?.access_token;
-      if (token) {
-        const res = await fetch("/api/me/profile", { headers: { Authorization: `Bearer ${token}` } });
-        const json = await res.json();
-        if (json.hasProfile && json.profileToken) setProfileToken(json.profileToken);
-      }
-      setLoading(false);
     }
     load();
-  }, [router]);
+  }, [router, secureSuffix]);
 
   async function logout() {
     await authClient.auth.signOut();
-    document.cookie = `${USER_ROLE_COOKIE}=; path=/; max-age=0; samesite=lax`;
+    document.cookie = `${USER_ROLE_COOKIE}=; path=/; max-age=0; samesite=lax${secureSuffix}`;
+    document.cookie = `${USER_TOKEN_COOKIE}=; path=/; max-age=0; samesite=lax${tokenSecureSuffix}`;
     router.push("/");
   }
 

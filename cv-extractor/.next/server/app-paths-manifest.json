@@ -1,7 +1,9 @@
 {
-  "/api/health/route": "app/api/health/route.js",
-  "/api/me/profile/route": "app/api/me/profile/route.js",
+  "/api/extract/route": "app/api/extract/route.js",
   "/page": "app/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/analyse/page": "app/analyse/page.js",
   "/login/page": "app/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/jobs/page": "app/jobs/page.js",
+  "/founders/page": "app/founders/page.js"
 }

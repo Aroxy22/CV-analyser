@@ -4,7 +4,7 @@ import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { USER_ROLE_COOKIE, getRoleFromMetadata } from "@/lib/user-role";
+import { USER_ROLE_COOKIE, USER_TOKEN_COOKIE, getRoleFromMetadata } from "@/lib/user-role";
 
 const MOCK_ARCHETYPES = [
   { emoji: "🔥", label: "Zero-to-One", color: "#ff4d00" },
@@ -23,6 +23,8 @@ function LoginInner() {
   const [error, setError] = useState("");
   const [hoveredArchetype, setHoveredArchetype] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  const secureSuffix = "; secure";
+  const tokenSecureSuffix = typeof window !== "undefined" && window.location.protocol === "https:" ? "; secure" : "";
 
   useEffect(() => setMounted(true), []);
 
@@ -54,7 +56,12 @@ function LoginInner() {
       }
       const { data } = await authClient.auth.getUser();
       const resolvedRole = getRoleFromMetadata(data.user?.user_metadata);
-      document.cookie = `${USER_ROLE_COOKIE}=${resolvedRole}; path=/; max-age=2592000; samesite=lax`;
+      document.cookie = `${USER_ROLE_COOKIE}=${resolvedRole}; path=/; max-age=2592000; samesite=lax${secureSuffix}`;
+      const session = await authClient.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (token) {
+        document.cookie = `${USER_TOKEN_COOKIE}=${token}; path=/; max-age=2592000; samesite=lax${tokenSecureSuffix}`;
+      }
       if (mode === "signup") {
         router.push("/analyse?from=signup");
       } else {

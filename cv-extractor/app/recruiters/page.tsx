@@ -18,6 +18,7 @@ export default function RecruitersPage() {
   const [items, setItems] = useState<CvItem[]>([]);
   const [mail, setMail] = useState("");
   const [mailSent, setMailSent] = useState(false);
+  const [mailSending, setMailSending] = useState(false);
   const [batchError, setBatchError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -102,7 +103,8 @@ export default function RecruitersPage() {
       ["file_name", "archetype", "seniority", "salary_band", "status"],
       ...items.map((x) => [x.fileName, x.archetype, x.seniority, x.salaryBand, x.status]),
     ];
-    const csv = rows.map((r) => r.join(",")).join("\n");
+    const escapeCsv = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = rows.map((r) => r.map(escapeCsv).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -112,6 +114,38 @@ export default function RecruitersPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  async function sendShortlistEmail() {
+    if (!mail.trim()) return;
+    setMailSent(false);
+    setMailSending(true);
+    try {
+      const rows = items.map((x) => ({
+        file_name: x.fileName,
+        archetype: x.archetype ?? "n/a",
+        seniority: x.seniority ?? "n/a",
+        salary_band: x.salaryBand ?? "n/a",
+        status: x.status,
+      }));
+
+      const res = await fetch("/api/recruiter-results-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: mail.trim(), rows }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to send email");
+      }
+
+      setMailSent(true);
+    } catch (err: unknown) {
+      setBatchError(err instanceof Error ? err.message : "Failed to send shortlist email");
+    } finally {
+      setMailSending(false);
+    }
   }
 
   return (
@@ -256,10 +290,19 @@ export default function RecruitersPage() {
                   style={{ flex: 1, background: "#0b0b0b", border: "1px solid #2d2d2d", borderRadius: 8, color: "#fff", padding: "10px 12px", fontSize: 13, outline: "none" }}
                 />
                 <button
-                  onClick={() => setMailSent(Boolean(mail))}
-                  style={{ border: "none", background: "#ec4899", borderRadius: 8, padding: "10px 14px", color: "#fff", fontWeight: 700, cursor: "pointer" }}
+                  onClick={sendShortlistEmail}
+                  disabled={mailSending || !mail.trim()}
+                  style={{
+                    border: "none",
+                    background: mailSending || !mail.trim() ? "#a8557f" : "#ec4899",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    color: "#fff",
+                    fontWeight: 700,
+                    cursor: mailSending || !mail.trim() ? "not-allowed" : "pointer",
+                  }}
                 >
-                  Email →
+                  {mailSending ? "Sending..." : "Email →"}
                 </button>
               </div>
               {mailSent && <div style={{ marginTop: 8, fontSize: 11, color: "#10b981" }}>Shortlist sent.</div>}
